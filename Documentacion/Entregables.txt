@@ -1,0 +1,8 @@
+RESERVA DE VIAJES EN TIEMPO REAL (¡HAY QUE USAR STREAMLIT!)
+- [ ] Presentación, 30 mins más o menos (5/10 son preguntas)
+- [ ] Diseño de arquitectura, diagrama de las diferentes piezas que se han utilizado
+- [ ] Justificación de las piezas, justificar las decisiones de porqué hemos usado antes unas herramientas que otras
+- [ ] Solución, o entorno web dónde se ejecute la solución
+- [ ] Vídeo, vídeo corto de menos de 5 minutos explicando el caso en youtube
+- [ ] Origen de datos, lista de datasets explorados y razones por las que se han incluido/excluido
+- [ ] Modelos de datos, diseño del modelo junto con atributos y definiciones de las mismas
