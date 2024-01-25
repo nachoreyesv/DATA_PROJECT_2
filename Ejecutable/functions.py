@@ -58,7 +58,20 @@ def gen_solicitudes(dfs_list):
 
     for i in dfs_list:
         puntos_posibles = i['punto_total'].to_list()
-        punto = random.choice(puntos_posibles)
-        solicitudes.append(punto)
+        punto_inicio = random.choice(puntos_posibles)
+        punto_final = random.randint(punto_inicio + 10, i['punto_total'].max() + 1)  # cambiable, valorar si hace trayecto completo o baja antes 
+        solicitudes.append((punto_inicio, punto_final))
 
     return solicitudes
+
+def calcular_coste(solicitudes):
+    tarifa_por_punto = 0.50  # cambiable, tarifa por cada punto avanzado
+    costes = []
+
+    for trayecto in solicitudes:
+        punto_inicio, punto_final = trayecto
+        recorrido = punto_final - punto_inicio
+        coste_trayecto = recorrido * tarifa_por_punto
+        costes.append(coste_trayecto)
+        
+    return costes
