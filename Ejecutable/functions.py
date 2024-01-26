@@ -58,8 +58,8 @@ def gen_solicitudes(dfs_list):
 
     for i in dfs_list:
         puntos_posibles = i['punto_total'].to_list()
-        punto_inicio = random.choice(puntos_posibles)
-        punto_final = random.randint(punto_inicio + 10, i['punto_total'].max() + 1)  # cambiable, valorar si hace trayecto completo o baja antes 
+        punto_inicio = random.choice(puntos_posibles[:len(puntos_posibles) // 2])
+        punto_final = random.choice(puntos_posibles[len(puntos_posibles) // 2:])  # cambiable, valorar si hace trayecto completo o baja antes 
         solicitudes.append((punto_inicio, punto_final))
 
     return solicitudes
