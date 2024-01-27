@@ -87,29 +87,31 @@ def mapa(dfs_list, solicitudes):
     
     folium_map = folium.Map(location=[dfs_list[0]['latitude'].mean(), dfs_list[0]['longitude'].mean()], tiles="cartodb positron", zoom_start=14)
 
-    colors = ['blue', 'red', 'green', 'yellow', 'black']
+    colors = ['lightgray', 'blue', 'purple', 'darkblue', 'green', 'lightred', 'lightgreen', 'orange', 'darkpurple', 'gray', 'cadetblue', 'black', 'pink', 'lightblue', 'red', 'darkred', 'darkgreen', 'white', 'beige']
 
     for i, df in enumerate(dfs_list):
 
+        # Marcador inicio ruta
         folium.Marker(
-        location=(df['latitude'].iloc[0], df['longitude'].iloc[0]),
-        popup='Inicio',
-        icon=folium.Icon(color='purple', icon='star')
+            location=(df['latitude'].iloc[0], df['longitude'].iloc[0]),
+            popup=f'Inicio oferta: {i}',
+            icon=folium.Icon(color=colors[i], icon ="fa-car", prefix = 'fa')
         ).add_to(folium_map)
 
-        # Marcador ruta conductor
+        # Linea ruta conductor
         folium.PolyLine(
             locations=df[['latitude', 'longitude']].values,
             color=colors[i],
-            weight=2.5,
+            weight=6,
             opacity=1
         ).add_to(folium_map)
 
-        #folium.Marker(
-        #popup='Fin',
-        #location=(df['latitude'].iloc[-1], df['longitude'].iloc[-1]),
-        #icon=folium.Icon(color='orange', icon='flag')
-        #).add_to(folium_map)
+        # Marcador final ruta
+        folium.Marker(
+        popup='Fin',
+        location=(df['latitude'].iloc[-1], df['longitude'].iloc[-1]),
+        icon=folium.Icon(color=colors[i], icon='flag')
+        ).add_to(folium_map)
 
 
     for solicitud in solicitudes:
@@ -138,7 +140,8 @@ def mapa(dfs_list, solicitudes):
             folium.Marker(
                 location=[latitude_inicio, longitude_inicio],
                 popup=f'Cliente sube al coche en el punto {punto_inicio} de la oferta:{i}',
-                icon=folium.Icon(color='green', icon='user')
+                icon=folium.CustomIcon(icon_image = "https://static.wikia.nocookie.net/nicos-nextbots-fanmade/images/b/b3/Pegmankillfeed.png",
+                                       icon_size = (10,25))
             ).add_to(folium_map)
 
         if df_puntofinal is not None and not df_puntofinal.empty:
@@ -149,7 +152,8 @@ def mapa(dfs_list, solicitudes):
             folium.Marker(
                 location=[latitude_final, longitude_final],
                 popup=f'Cliente baja del coche en el punto {punto_final} de la oferta:{i}',
-                icon=folium.Icon(color='red', icon='user')
+                icon=folium.CustomIcon(icon_image = "https://www.clker.com/cliparts/E/d/H/3/P/F/red-walking-man-with-black-outline-hi.png",
+                                       icon_size = (8,20))
             ).add_to(folium_map)
 
 
