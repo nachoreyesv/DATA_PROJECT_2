@@ -50,26 +50,29 @@ def gen_ofertas(df):
     
     for i in res:
         matching_rows = df[df['viaje'] == i]
+
         if not matching_rows.empty:
-            inicio_aleatorio = random.randint(0, len(matching_rows) - 200)
-            valores_seleccionados = matching_rows[inicio_aleatorio:inicio_aleatorio + 200]
-            ofertas.append(valores_seleccionados)
+            ofertas.append(matching_rows)
 
     return ofertas
 
-def gen_solicitudes(dfs_list):
+def gen_solicitudes(dfs_list, distancia_minima=40):
     solicitudes = []
 
     for i in dfs_list:
         puntos_posibles = i['punto_total'].to_list()
         punto_inicio = random.choice(puntos_posibles[:len(puntos_posibles) // 2])
-        punto_final = random.choice(puntos_posibles[len(puntos_posibles) // 2:])  # cambiable, valorar si hace trayecto completo o baja antes 
-        solicitudes.append((punto_inicio, punto_final))
+        indices_validos = [idx for idx, punto in enumerate(puntos_posibles[len(puntos_posibles) // 2:]) if punto - punto_inicio >= distancia_minima]
+
+        if indices_validos:
+            indice_final = random.choice(indices_validos)
+            punto_final = puntos_posibles[len(puntos_posibles) // 2:][indice_final]
+            solicitudes.append((punto_inicio, punto_final))
 
     return solicitudes
 
 def calcular_coste(solicitudes):
-    tarifa_por_punto = 0.50  # cambiable, tarifa por cada punto avanzado
+    tarifa_por_punto = 0.50 
     costes = []
 
     for trayecto in solicitudes:
@@ -81,12 +84,19 @@ def calcular_coste(solicitudes):
     return costes
 
 def mapa(dfs_list, solicitudes):
-
+    
     folium_map = folium.Map(location=[dfs_list[0]['latitude'].mean(), dfs_list[0]['longitude'].mean()], tiles="cartodb positron", zoom_start=14)
 
-    colors = ['blue', 'red', 'green', 'yellow', 'brown']
+    colors = ['blue', 'red', 'green', 'yellow', 'black']
 
     for i, df in enumerate(dfs_list):
+
+        folium.Marker(
+        location=(df['latitude'].iloc[0], df['longitude'].iloc[0]),
+        popup='Inicio',
+        icon=folium.Icon(color='purple', icon='star')
+        ).add_to(folium_map)
+
         # Marcador ruta conductor
         folium.PolyLine(
             locations=df[['latitude', 'longitude']].values,
@@ -95,26 +105,53 @@ def mapa(dfs_list, solicitudes):
             opacity=1
         ).add_to(folium_map)
 
+        #folium.Marker(
+        #popup='Fin',
+        #location=(df['latitude'].iloc[-1], df['longitude'].iloc[-1]),
+        #icon=folium.Icon(color='orange', icon='flag')
+        #).add_to(folium_map)
+
+
     for solicitud in solicitudes:
-        punto_inicio, _ = solicitud
+        punto_inicio, punto_final = solicitud
 
         df_puntoinicio = None
+        df_puntofinal = None
+        i = 0
 
         for df in dfs_list:
+            i += 1
             if punto_inicio in df['punto_total'].values:
                 df_puntoinicio = df[df['punto_total'] == punto_inicio]
-                break  
+                break
+
+        for df in dfs_list:
+            if punto_final in df['punto_total'].values:
+                df_puntofinal = df[df['punto_total'] == punto_final]
+                break
 
         if not df_puntoinicio.empty:
             latitude_inicio = df_puntoinicio['latitude'].values[0]
             longitude_inicio = df_puntoinicio['longitude'].values[0]
 
-            # Marcador solicitud
+            # Marcador solicitud inicio (lugar donde se sube el cliente)
             folium.Marker(
                 location=[latitude_inicio, longitude_inicio],
-                popup=f'Punto de inicio solicitud {punto_inicio}',
-                icon=folium.Icon(color='green', icon='info-sign')
+                popup=f'Cliente sube al coche en el punto {punto_inicio} de la oferta:{i}',
+                icon=folium.Icon(color='green', icon='user')
             ).add_to(folium_map)
+
+        if df_puntofinal is not None and not df_puntofinal.empty:
+            latitude_final = df_puntofinal['latitude'].values[0]
+            longitude_final = df_puntofinal['longitude'].values[0]
+
+            # Marcador solicitud final (lugar donde se baja el cliente)
+            folium.Marker(
+                location=[latitude_final, longitude_final],
+                popup=f'Cliente baja del coche en el punto {punto_final} de la oferta:{i}',
+                icon=folium.Icon(color='red', icon='user')
+            ).add_to(folium_map)
+
 
     return folium_map
 
