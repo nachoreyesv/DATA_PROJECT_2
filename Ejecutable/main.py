@@ -94,7 +94,7 @@ def mapa(dfs_list, solicitudes):
         # Marcador inicio ruta
         folium.Marker(
             location=(df['latitude'].iloc[0], df['longitude'].iloc[0]),
-            popup=f'Inicio oferta: {df["viaje"].iloc[0]}',
+            popup=f'Inicio Viaje Nº {df["viaje"].iloc[0]}',
             icon=folium.Icon(color=colors[i], 
                              icon ="fa-car", 
                              prefix = 'fa')
@@ -106,12 +106,12 @@ def mapa(dfs_list, solicitudes):
             color=colors[i],
             weight=6,
             opacity=1,
-            popup= f'Oferta {df["viaje"].iloc[0]}'
+            popup= f'Viaje Nº {df["viaje"].iloc[0]}'
         ).add_to(folium_map)
 
         # Marcador final ruta
         folium.Marker(
-            popup='Fin',
+            popup=f'Fin Viaje Nº {df["viaje"].iloc[0]}',
             location=(df['latitude'].iloc[-1], df['longitude'].iloc[-1]),
             icon=folium.Icon(color=colors[i], 
                              icon='flag')
@@ -143,7 +143,7 @@ def mapa(dfs_list, solicitudes):
             # Marcador solicitud inicio (lugar donde se sube el cliente)
             folium.Marker(
                 location=[latitude_inicio, longitude_inicio],
-                popup=f'Cliente sube al coche en el punto {punto_inicio} de la oferta: {df_puntoinicio["viaje"].iloc[0]}',
+                popup=f'Cliente sube al coche en el punto {punto_inicio} del Viaje Nº {df_puntoinicio["viaje"].iloc[0]}',
                 icon=folium.CustomIcon(icon_image = "https://static.wikia.nocookie.net/nicos-nextbots-fanmade/images/b/b3/Pegmankillfeed.png",
                                        icon_size = (10,25))
             ).add_to(folium_map)
@@ -155,7 +155,7 @@ def mapa(dfs_list, solicitudes):
             # Marcador solicitud final (lugar donde se baja el cliente)
             folium.Marker(
                 location=[latitude_final, longitude_final],
-                popup=f'Cliente baja del coche en el punto {punto_final} de la oferta: {df_puntofinal["viaje"].iloc[0]}',
+                popup=f'Cliente baja del coche en el punto {punto_final} del Viaje Nº {df_puntofinal["viaje"].iloc[0]}',
                 icon=folium.CustomIcon(icon_image = "https://www.clker.com/cliparts/E/d/H/3/P/F/red-walking-man-with-black-outline-hi.png",
                                        icon_size = (8,20))
             ).add_to(folium_map)
