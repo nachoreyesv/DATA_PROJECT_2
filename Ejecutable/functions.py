@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import xml.etree.ElementTree as ET
 import random
-
+import folium
 
 def kml_df(kml_folder_path):
     data = {"viaje": [], "punto": [], "latitude": [], "longitude": [], "altitude": []}
@@ -75,3 +75,41 @@ def calcular_coste(solicitudes):
         costes.append(coste_trayecto)
         
     return costes
+
+def mapa(dfs_list, solicitudes):
+
+    folium_map = folium.Map(location=[dfs_list[0]['latitude'].mean(), dfs_list[0]['longitude'].mean()], tiles="cartodb positron", zoom_start=14)
+
+    colors = ['blue', 'red', 'green', 'yellow', 'brown']
+
+    for i, df in enumerate(dfs_list):
+        # Marcador ruta conductor
+        folium.PolyLine(
+            locations=df[['latitude', 'longitude']].values,
+            color=colors[i],
+            weight=2.5,
+            opacity=1
+        ).add_to(folium_map)
+
+    for solicitud in solicitudes:
+        punto_inicio, _ = solicitud
+
+        df_puntoinicio = None
+
+        for df in dfs_list:
+            if punto_inicio in df['punto_total'].values:
+                df_puntoinicio = df[df['punto_total'] == punto_inicio]
+                break  
+
+        if not df_puntoinicio.empty:
+            latitude_inicio = df_puntoinicio['latitude'].values[0]
+            longitude_inicio = df_puntoinicio['longitude'].values[0]
+
+            # Marcador solicitud
+            folium.Marker(
+                location=[latitude_inicio, longitude_inicio],
+                popup=f'Punto de inicio solicitud {punto_inicio}',
+                icon=folium.Icon(color='green', icon='info-sign')
+            ).add_to(folium_map)
+
+    return folium_map
