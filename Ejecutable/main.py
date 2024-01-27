@@ -1,8 +1,10 @@
 import pandas as pd
 import os
 import xml.etree.ElementTree as ET
+import streamlit as st
 import random
 import folium
+from streamlit_folium import folium_static
 
 def kml_df(kml_folder_path):
     data = {"viaje": [], "punto": [], "latitude": [], "longitude": [], "altitude": []}
@@ -39,16 +41,18 @@ def kml_df(kml_folder_path):
 def gen_ofertas(df):
     res = []
     ofertas = []
-    
-    for i in range(5):
-        a = random.randint(1,11)
-        res.append(a)
+    no_rep = list(range(1,11))
 
+    for i in range(5):
+        a = random.choice(no_rep)
+        res.append(a)
+        no_rep.remove(a)
+    
     for i in res:
         matching_rows = df[df['viaje'] == i]
         if not matching_rows.empty:
-            inicio_aleatorio = random.randint(0, len(matching_rows) - 100)
-            valores_seleccionados = matching_rows[inicio_aleatorio:inicio_aleatorio + 100]
+            inicio_aleatorio = random.randint(0, len(matching_rows) - 200)
+            valores_seleccionados = matching_rows[inicio_aleatorio:inicio_aleatorio + 200]
             ofertas.append(valores_seleccionados)
 
     return ofertas
@@ -113,3 +117,20 @@ def mapa(dfs_list, solicitudes):
             ).add_to(folium_map)
 
     return folium_map
+
+
+if __name__ == '__main__':
+
+    df = kml_df('coordenadas')
+
+    dfs_list = gen_ofertas(df)
+
+    solicitudes = gen_solicitudes(dfs_list)
+
+    coste = calcular_coste(solicitudes)
+
+    print(dfs_list)
+    print(solicitudes)
+    print(coste)
+
+    folium_static(mapa(dfs_list, solicitudes))
