@@ -38,12 +38,12 @@ def kml_df(kml_folder_path):
     df['punto_total'] = df.index
     return df
 
-def gen_ofertas(df):
+def gen_ofertas(df, num_rutas):
     res = []
     ofertas = []
     no_rep = list(range(1,11))
 
-    for i in range(5):
+    for i in range(num_rutas):
         a = random.choice(no_rep)
         res.append(a)
         no_rep.remove(a)
@@ -84,10 +84,14 @@ def calcular_coste(solicitudes):
     return costes
 
 def mapa(dfs_list, solicitudes):
-    
-    folium_map = folium.Map(location=[dfs_list[0]['latitude'].mean(), dfs_list[0]['longitude'].mean()], tiles="cartodb positron", zoom_start=14)
 
-    colors = ['lightgray', 'blue', 'purple', 'darkblue', 'green', 'lightred', 'lightgreen', 'orange', 'darkpurple', 'gray', 'cadetblue', 'black', 'pink', 'lightblue', 'red', 'darkred', 'darkgreen', 'white', 'beige']
+    all_coordinates = pd.concat([df[['latitude', 'longitude']] for df in dfs_list])
+    mean_latitude = all_coordinates['latitude'].mean()
+    mean_longitude = all_coordinates['longitude'].mean()
+
+    folium_map = folium.Map(location=[mean_latitude, mean_longitude], tiles="cartodb positron", zoom_start=13)
+
+    colors = ['black', 'blue', 'purple', 'darkblue', 'green', 'lightgreen', 'orange', 'gray', 'cadetblue', 'lightgray', 'pink', 'lightblue', 'red', 'darkred', 'darkgreen', 'white', 'beige']
 
     for i, df in enumerate(dfs_list):
 
@@ -123,10 +127,8 @@ def mapa(dfs_list, solicitudes):
 
         df_puntoinicio = None
         df_puntofinal = None
-        i = 0
     
         for df in dfs_list:
-            i += 1
             if punto_inicio in df['punto_total'].values:
                 df_puntoinicio = df[df['punto_total'] == punto_inicio]
                 break
@@ -166,9 +168,13 @@ def mapa(dfs_list, solicitudes):
 
 if __name__ == '__main__':
 
+    st.title('Servicio Blablacar')
+
     df = kml_df('coordenadas')
 
-    dfs_list = gen_ofertas(df)
+    num_rutas = st.selectbox('Número de coches', range(1, 11))
+
+    dfs_list = gen_ofertas(df, num_rutas)
 
     solicitudes = gen_solicitudes(dfs_list)
 
