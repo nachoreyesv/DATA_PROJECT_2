@@ -83,6 +83,20 @@ def calcular_coste(solicitudes):
         
     return costes
 
+# Calculo utilidad blablacar 30%
+
+def calculo_bla(costes):
+    utilidad_blablacar = ["{:.2f}".format(coste * 0.30) for coste in costes]
+    return utilidad_blablacar
+
+# Calculo utilidad conductor 70%
+
+def calculo_conductor(costes):
+    utilidad_conductor = ["{:.2f}".format(coste * 0.70) for coste in costes]
+    return utilidad_conductor
+
+
+
 def mapa(dfs_list, solicitudes):
 
     all_coordinates = pd.concat([df[['latitude', 'longitude']] for df in dfs_list])
@@ -180,8 +194,13 @@ if __name__ == '__main__':
 
     coste = calcular_coste(solicitudes)
 
+    utilidad = calculo_bla(coste)
+
+    utilidad_conductor = calculo_conductor(coste)
+
     print(dfs_list)
     print(solicitudes)
     print(coste)
-
+    print(utilidad)
+    print(utilidad_conductor)
     folium_static(mapa(dfs_list, solicitudes))
