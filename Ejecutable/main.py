@@ -5,6 +5,7 @@ import streamlit as st
 import random
 import folium
 from streamlit_folium import folium_static
+import time
 
 def kml_df(kml_folder_path):
     data = {"viaje": [], "punto": [], "latitude": [], "longitude": [], "altitude": []}
@@ -83,22 +84,15 @@ def calcular_coste(solicitudes):
         
     return costes
 
-# Calculo utilidad blablacar 30%
-
 def calculo_bla(costes):
     utilidad_blablacar = ["{:.2f}".format(coste * 0.30) for coste in costes]
     return utilidad_blablacar
-
-# Calculo utilidad conductor 70%
 
 def calculo_conductor(costes):
     utilidad_conductor = ["{:.2f}".format(coste * 0.70) for coste in costes]
     return utilidad_conductor
 
-
-
-def mapa(dfs_list, solicitudes):
-
+def mapa(dfs_list, solicitudes, current_punto):
     all_coordinates = pd.concat([df[['latitude', 'longitude']] for df in dfs_list])
     mean_latitude = all_coordinates['latitude'].mean()
     mean_longitude = all_coordinates['longitude'].mean()
@@ -108,23 +102,13 @@ def mapa(dfs_list, solicitudes):
     colors = ['black', 'blue', 'purple', 'darkblue', 'green', 'lightgreen', 'orange', 'gray', 'cadetblue', 'lightgray', 'pink', 'lightblue', 'red', 'darkred', 'darkgreen', 'white', 'beige']
 
     for i, df in enumerate(dfs_list):
-
-        # Marcador inicio ruta
+        # Icono de inicio de trayecto
         folium.Marker(
             location=(df['latitude'].iloc[0], df['longitude'].iloc[0]),
             popup=f'Inicio Viaje Nº {df["viaje"].iloc[0]}',
             icon=folium.Icon(color=colors[i], 
                              icon ="fa-car", 
                              prefix = 'fa')
-        ).add_to(folium_map)
-
-        # Linea ruta conductor
-        folium.PolyLine(
-            locations=df[['latitude', 'longitude']].values,
-            color=colors[i],
-            weight=6,
-            opacity=1,
-            popup= f'Viaje Nº {df["viaje"].iloc[0]}'
         ).add_to(folium_map)
 
         # Marcador final ruta
@@ -135,6 +119,15 @@ def mapa(dfs_list, solicitudes):
                              icon='flag')
         ).add_to(folium_map)
 
+        # Polilínea para la ruta del coche
+        if current_punto > 0 and current_punto < len(df):
+            folium.PolyLine(
+                locations=df[['latitude', 'longitude']].values[:current_punto+1],
+                color=colors[i],
+                weight=6,
+                opacity=0.5,
+                popup= f'Viaje Nº {df["viaje"].iloc[0]}'
+            ).add_to(folium_map)
 
     for solicitud in solicitudes:
         punto_inicio, punto_final = solicitud
@@ -176,9 +169,17 @@ def mapa(dfs_list, solicitudes):
                                        icon_size = (8,20))
             ).add_to(folium_map)
 
+    # Icono del coche en movimiento
+    for i, df in enumerate(dfs_list):
+        if current_punto < len(df):
+            latitude = df['latitude'].iloc[current_punto]
+            longitude = df['longitude'].iloc[current_punto]
+            folium.Marker(
+                location=[latitude, longitude],
+                icon=folium.Icon(color='gray', icon='car', prefix='fa')
+            ).add_to(folium_map)
 
     return folium_map
-
 
 if __name__ == '__main__':
 
@@ -198,9 +199,15 @@ if __name__ == '__main__':
 
     utilidad_conductor = calculo_conductor(coste)
 
-    print(dfs_list)
-    print(solicitudes)
-    print(coste)
-    print(utilidad)
-    print(utilidad_conductor)
-    folium_static(mapa(dfs_list, solicitudes))
+    current_punto = st.empty()
+    current_punto.text("El coche está en el punto 0 de la ruta.")
+
+    folium_map = mapa(dfs_list, solicitudes, 0)
+    map_component = folium_static(folium_map)
+
+    for punto in range(1, len(df)):
+        time.sleep(1)  # Espera de un segundo entre puntos para simular el streaming
+        current_punto.text(f"El coche está en el punto {punto} de la ruta.")
+        map_component.empty()  # Limpia el mapa actual
+        folium_map = mapa(dfs_list, solicitudes, punto)  # Genera el mapa actualizado
+        map_component = folium_static(folium_map)  # Renderiza el nuevo mapa en Streamlit
