@@ -6,10 +6,8 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 
 from google.cloud import pubsub_v1
-import threading
 import argparse
 import logging
-import secrets
 import string
 import json
 import time
