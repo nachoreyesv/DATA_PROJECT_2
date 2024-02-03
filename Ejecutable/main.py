@@ -108,7 +108,7 @@ def gen_ofertas(num_ofertas, project_id, topic_name):
 
     for i in range(1, num_ofertas + 1):
         kml_file = obtener_ruta_archivo_aleatorio()
-        data = read_kml(oferta=i, kml_file=kml_file, project_id=project_id, topic_name=topic_name)
+        read_kml(oferta=i, kml_file=kml_file, project_id=project_id, topic_name=topic_name)
 
 
 
