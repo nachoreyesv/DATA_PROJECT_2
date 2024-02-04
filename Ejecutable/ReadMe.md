@@ -17,4 +17,3 @@ python dataflow.py `
     --runner "DataflowRunner" `
     --job_name <YOUR_DATAFLOW_JOB> `
     --region <YOUR_REGION_ID> `
-
