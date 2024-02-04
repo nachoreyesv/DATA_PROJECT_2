@@ -1,38 +1,37 @@
 import os
-import shutil
-import requests
 import random
-import pandas as pd
-import xml.etree.ElementTree as ET
-
-from google.cloud import pubsub_v1
-import argparse
-import logging
-import string
 import json
 import time
+from google.cloud import pubsub_v1
+from google.cloud import storage
+from google.cloud.storage import Blob
+import xml.etree.ElementTree as ET
+import argparse
 
 BASE_URL = 'http://127.0.0.1:5000'
-NUM_OFERTAS = 3  # Número de ofertas que deseas generar
+NUM_OFERTAS = 1
+NUM_SOLICITUDES = 10
 DOWNLOAD_FOLDER = 'get_coord'
 
-
-#Input arguments
 parser = argparse.ArgumentParser(description=('Streaming Data Generator'))
 
 parser.add_argument(
-                '--project_id',
-                required=True,
-                help='GCP cloud project name.')
+    '--project_id',
+    required=True,
+    help='GCP cloud project name.')
 parser.add_argument(
-                '--topic_name',
-                required=True,
-                help='PubSub topic name.')
+    '--topic_name',
+    required=True,
+    help='PubSub topic name.')
+parser.add_argument(
+    '--bucket_name',
+    required=True,
+    help='Google Cloud Storage bucket name.')
 
 args, opts = parser.parse_known_args()
 
-class PubSubMessages:
 
+class PubSubMessages:
     """ Publish Messages in our PubSub Topic """
 
     def __init__(self, project_id: str, topic_name: str):
@@ -50,36 +49,23 @@ class PubSubMessages:
         logging.info("PubSub Client closed.")
 
 
+def download_blob(bucket_name, source_blob_name, destination_file_name):
+    """Downloads a blob from the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = Blob(source_blob_name, bucket)
+    blob.download_to_filename(destination_file_name)
 
-def obtener_ruta_archivo_aleatorio():
-    file_id = random.randint(1, 19)
-    obtener_ruta_archivo(file_id)
-    kml_file = os.path.join(DOWNLOAD_FOLDER, f'{file_id}.kml')
-    return kml_file
 
-def obtener_ruta_archivo(file_id):
-    url = f'{BASE_URL}/get_kml/{file_id}'
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        data = response.json()
-        file_path = data.get('file_path')
-        if file_path:
-            descargar_archivo(file_id, file_path)
-        else:
-            print(f'Error: No se ha podido obtener la ruta del archivo {file_id}')
-    else:
-        print(f'Error al obtener la ruta del archivo {file_id}. Código de estado: {response.status_code}')
-
-def descargar_archivo(file_id, file_path):
-    download_path = os.path.join(DOWNLOAD_FOLDER, f'{file_id}.kml')
-    shutil.copy(file_path, download_path)
-
-def read_kml(oferta, kml_file, project_id: str, topic_name: str):
-
+def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
 
+    kml_file = os.path.join(DOWNLOAD_FOLDER, f'{file_id}.kml')
+    download_blob(bucket_name, f'{file_id}.kml', kml_file)
+
     data = {"id_oferta": [], "punto": [], "latitude": [], "longitude": []}
+    datos_longitude = []
+    datos_latitude = []
 
     with open(kml_file, "r", encoding="utf-8") as file:
         kml_data = file.read()
@@ -96,22 +82,84 @@ def read_kml(oferta, kml_file, project_id: str, topic_name: str):
             data["punto"] = _ + 1
             data["latitude"] = coords[1]
             data["longitude"] = coords[0]
+            datos_latitude.append(coords[1])
+            datos_longitude.append(coords[0])
             print(data)
             pubsub_class.publish_message(data)
-            time.sleep(5)
+            time.sleep(1)
+
+    return datos_longitude, datos_latitude
 
 
+def get_coords_finales(bucket_name, DOWNLOAD_FOLDER):
+    latitudes_finales = []
+    longitudes_finales = []
 
-def gen_ofertas(num_ofertas, project_id, topic_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+
+    blobs = bucket.list_blobs()
+
+    for blob in blobs:
+        if blob.name.endswith(".kml"):
+            kml_file = os.path.join(DOWNLOAD_FOLDER, blob.name)
+
+            with open(kml_file, "wb") as file:
+                blob.download_to_file(file)
+
+            with open(kml_file, "r", encoding="utf-8") as archivo:
+                datos_kml = archivo.read()
+
+            raiz = ET.fromstring(datos_kml)
+            coordenadas = raiz.findall(".//{http://www.opengis.net/kml/2.2}coordinates")
+
+            if coordenadas:
+                for coordenada_str in coordenadas:
+                    coords_lista = [tuple(map(float, _.split(','))) for _ in coordenada_str.text.split()]
+                    for coords in coords_lista:
+                        longitudes_finales.append(coords[0])
+                        latitudes_finales.append(coords[1])
+
+    return latitudes_finales, longitudes_finales
+
+
+def gen_ofertas(num_ofertas, project_id, topic_name, bucket_name):
+    datos_longitude_total = []
+    datos_latitude_total = []
 
     for i in range(1, num_ofertas + 1):
-        kml_file = obtener_ruta_archivo_aleatorio()
-        read_kml(oferta=i, kml_file=kml_file, project_id=project_id, topic_name=topic_name)
+        file_id = random.randint(1, 27)
+        datos_longitude, datos_latitude = read_kml(
+            oferta=i, bucket_name=bucket_name, file_id=file_id, project_id=project_id, topic_name=topic_name)
+        datos_longitude_total = datos_longitude
+        datos_latitude_total = datos_latitude
 
+    return datos_longitude_total, datos_latitude_total
+
+
+def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_latitude_total, datos_longitude_total, latitudes_finales, longitudes_finales):
+
+    pubsub_class = PubSubMessages(project_id, topic_name)
+
+    data_solicitud = {"id_solicitud": [], "latitude": [], "longitude": [], "latitude_destino": [], "longitude_destino": []}
+    for i in range(1, num_solicitudes + 1):
+        data_solicitud['id_solicitud'] = i
+        data_solicitud['latitude'] = random.choice(datos_latitude_total)
+        data_solicitud['longitude'] = random.choice(datos_longitude_total)
+        data_solicitud['latitude_destino'] = random.choice(latitudes_finales)
+        data_solicitud['longitude_destino'] = random.choice(longitudes_finales)
+        print(data_solicitud)
+        pubsub_class.publish_message(data_solicitud)
+        time.sleep(1)
 
 
 if __name__ == '__main__':
     if not os.path.exists(DOWNLOAD_FOLDER):
         os.makedirs(DOWNLOAD_FOLDER)
 
-    gen_ofertas(NUM_OFERTAS, args.project_id, args.topic_name)
+    datos_latitude_total, datos_longitude_total = gen_ofertas(
+        NUM_OFERTAS, args.project_id, args.topic_name, args.bucket_name)
+    latitudes_finales, longitudes_finales = get_coords_finales(
+        args.bucket_name, DOWNLOAD_FOLDER)
+    gen_solicitudes(NUM_SOLICITUDES, args.project_id, args.topic_name,
+                    datos_latitude_total, datos_longitude_total, latitudes_finales, longitudes_finales)
