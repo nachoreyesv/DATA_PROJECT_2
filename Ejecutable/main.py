@@ -7,6 +7,7 @@ from google.cloud import storage
 from google.cloud.storage import Blob
 import xml.etree.ElementTree as ET
 import argparse
+import logging
 
 BASE_URL = 'http://127.0.0.1:5000'
 NUM_OFERTAS = 1

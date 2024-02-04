@@ -1,11 +1,19 @@
 from flask import Flask, request, jsonify
 from google.cloud import storage
+import sys
 
 app = Flask(__name__)
 
-storage_client = storage.Client('dataflow-clase')
+if len(sys.argv) != 3:
+    print("Usage: python your_script.py <project_id> <bucket_name>")
+    sys.exit(1)
 
-BUCKET_NAME = 'data-flow-bucket-dp2'
+project_id = sys.argv[1]
+BUCKET_NAME = sys.argv[2]
+
+
+storage_client = storage.Client(project_id)
+
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
