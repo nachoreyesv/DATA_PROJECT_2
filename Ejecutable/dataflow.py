@@ -14,61 +14,18 @@ project_id = "dataproject2-413213"
 bq_dataset = "tu_dataset"
 bq_table = "tu_tabla"
 
-class PubSubMessages:
+def ParsePubSubMessage(message):
 
-    def _init_(self, project_id: str, topic_name: str):
-        self.publisher = pubsub_v1.PublisherClient()
-        self.project_id = project_id
-        self.topic_name = topic_name
+    # Decode PubSub message in order to deal with
+    pubsub_message = message.decode('utf-8')
+    
+    # Convert string decoded in JSON format
+    msg = json.loads(pubsub_message)
 
-    def publish_message(self, data):
-        json_str = json.dumps(data)
-        topic_path = self.publisher.topic_path(self.project_id, self.topic_name)
-        self.publisher.publish(topic_path, json_str.encode("utf-8"))
+    logging.info("New message in PubSub: %s", msg)
 
-    def exit(self):
-        self.publisher.transport.close()
-        logging.info("PubSub Client closed.")
-
-
-class ReadKmlDoFn(beam.DoFn):
-    def process(self, element):
-        json_data = json.loads(element)
-        oferta = json_data.get("id_oferta")
-        kml_file = json_data.get("kml_file")
-        project_id = json_data.get("project_id")
-        topic_name = json_data.get("topic_name")
-
-        if oferta and kml_file and project_id and topic_name:
-            pubsub_class = PubSubMessages(project_id, topic_name)
-
-            data = {"id_oferta": [], "punto": [], "latitude": [], "longitude": []}
-
-            with open(kml_file, "r", encoding="utf-8") as file:
-                kml_data = file.read()
-            root = ET.fromstring(kml_data)
-            coords = root.find(".//{http://www.opengis.net/kml/2.2}LineString/{http://www.opengis.net/kml/2.2}coordinates")
-            if coords is not None:
-                coords_str = coords.text
-                coords_list = [tuple(map(float, _.split(','))) for _ in coords_str.split()]
-                for _, coords in enumerate(coords_list):
-                    data["id_oferta"] = oferta
-                    data["punto"] = _ + 1
-                    data["latitude"] = coords[1]
-                    data["longitude"] = coords[0]
-                    pubsub_class.publish_message(data)
-                    time.sleep(5)
-
-
-def gen_ofertas(num_ofertas, project_id, topic_name):
-    return [
-        {
-            "id_oferta": i,
-            "kml_file": obtener_ruta_archivo_aleatorio(),
-            "project_id": project_id,
-            "topic_name": topic_name
-        } for i in range(1, num_ofertas + 1)
-    ]
+    # Return function
+    return msg
 
 
 def run():
@@ -104,17 +61,17 @@ def run():
         _ = (
             p
             | "Read From PubSub" >> beam.io.ReadFromPubSub(subscription=args.input_subscription)
-            | "Parse JSON messages" >> beam.ParDo(ReadKmlDoFn())
+            | "Parse JSON messages" >> beam.Map(ParsePubSubMessage)
             | "Write to BigQuery" >> beam.io.WriteToBigQuery(
                 table = f"{project_id}:{bq_dataset}.{bq_table}", # Required Format: PROJECT_ID:DATASET.TABLE
                 schema='nombre:STRING', # Required Format: field:TYPE
                 create_disposition=beam.io.BigQueryDisposition.CREATE_NEVER,
                 write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND
-            )    
+            )   
         )
 
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     # Set Logs
     logging.getLogger().setLevel(logging.INFO)
     logging.info("The process started")
