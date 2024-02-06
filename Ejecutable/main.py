@@ -81,18 +81,23 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
 
     if coords is not None:
         coords_str = coords.text
-        coords_list = [tuple(map(float, _.split(','))) for _ in coords_str.split()]
+        coords_list = [tuple(map(float, _.split(',')))[:2] for _ in coords_str.split()]
 
         for _, coords in enumerate(coords_list):
+            
+            trayecto_desde_punto_actual = coords_list[_:]  # Obtener sublista desde el punto actual hasta el final
+
             data["id_oferta"] = oferta
             data["punto"] = _ + 1
             data["latitude"] = coords[1]
             data["longitude"] = coords[0]
+            data["trayecto"] = trayecto_desde_punto_actual
             datos_latitude.append(coords[1])
             datos_longitude.append(coords[0])
             print(data)
             pubsub_class.publish_message(data)
             time.sleep(1)
+
 
     return datos_longitude, datos_latitude
 
