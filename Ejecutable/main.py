@@ -21,9 +21,13 @@ parser.add_argument(
     required=True,
     help='GCP cloud project name.')
 parser.add_argument(
-    '--topic_name',
+    '--topic_ofertas',
     required=True,
-    help='PubSub topic name.')
+    help='PubSub topic de ofertas.')
+parser.add_argument(
+    '--topic_solicitudes',
+    required=True,
+    help='PubSub topic de solicitudes.')
 parser.add_argument(
     '--bucket_name',
     required=True,
@@ -45,9 +49,10 @@ class PubSubMessages:
         topic_path = self.publisher.topic_path(self.project_id, self.topic_name)
         self.publisher.publish(topic_path, json_str.encode("utf-8"))
 
-    def __exit__(self):
-        self.publisher.transport.close()
-        logging.info("PubSub Client closed.")
+    def close(self):
+        self.publisher.api.transport.close()
+        logging.info(f"PubSub Client for {self.topic_name} closed.")
+
 
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
@@ -158,9 +163,15 @@ if __name__ == '__main__':
     if not os.path.exists(DOWNLOAD_FOLDER):
         os.makedirs(DOWNLOAD_FOLDER)
 
+    pubsub_ofertas = PubSubMessages(args.project_id, args.topic_ofertas)
+    pubsub_solicitudes = PubSubMessages(args.project_id, args.topic_solicitudes)
+
     datos_latitude_total, datos_longitude_total = gen_ofertas(
-        NUM_OFERTAS, args.project_id, args.topic_name, args.bucket_name)
+        NUM_OFERTAS, args.project_id, args.topic_ofertas, args.bucket_name)
     latitudes_finales, longitudes_finales = get_coords_finales(
         args.bucket_name, DOWNLOAD_FOLDER)
-    gen_solicitudes(NUM_SOLICITUDES, args.project_id, args.topic_name,
+    gen_solicitudes(NUM_SOLICITUDES, args.project_id, args.topic_solicitudes,
                     datos_latitude_total, datos_longitude_total, latitudes_finales, longitudes_finales)
+
+    pubsub_ofertas.close()
+    pubsub_solicitudes.close()
