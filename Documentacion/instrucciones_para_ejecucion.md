@@ -14,4 +14,4 @@ python dataflow.py `
     --output_topic <YOUR_OUTPUT_PUBSUB_TOPIC_NAME> `
     --runner "DataflowRunner" `
     --job_name <YOUR_DATAFLOW_JOB> `
-    --region <YOUR_REGION_ID> `
+    --region <YOUR_REGION_ID> 
