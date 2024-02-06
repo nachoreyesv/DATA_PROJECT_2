@@ -49,9 +49,10 @@ class PubSubMessages:
         topic_path = self.publisher.topic_path(self.project_id, self.topic_name)
         self.publisher.publish(topic_path, json_str.encode("utf-8"))
 
-    def __exit__(self):
-        self.publisher.transport.close()
-        logging.info("PubSub Client closed.")
+    def close(self):
+        self.publisher.api.transport.close()
+        logging.info(f"PubSub Client for {self.topic_name} closed.")
+
 
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
