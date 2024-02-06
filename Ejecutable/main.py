@@ -89,10 +89,11 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
             data["punto"] = _ + 1
             data["latitude"] = coords[1]
             data["longitude"] = coords[0]
-            data["trayecto"] = coords_list
+            data["trayecto"] = coords_list[_:]
             datos_latitude.append(coords[1])
             datos_longitude.append(coords[0])
             print(data)
+            pubsub_class.publish_message(data)
             time.sleep(1)
 
 
@@ -157,6 +158,7 @@ def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_latitude_tota
         data_solicitud['latitude_destino'] = random.choice(latitudes_finales)
         data_solicitud['longitude_destino'] = random.choice(longitudes_finales)
         print(data_solicitud)
+        pubsub_class.publish_message(data_solicitud)
         time.sleep(1)
 
 
