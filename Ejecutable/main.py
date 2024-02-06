@@ -89,7 +89,7 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
             data["punto"] = _ + 1
             data["latitude"] = coords[1]
             data["longitude"] = coords[0]
-            data["trayecto"] = coords_list
+            data["trayecto"] = coords_list[_:]
             datos_latitude.append(coords[1])
             datos_longitude.append(coords[0])
             print(data)
