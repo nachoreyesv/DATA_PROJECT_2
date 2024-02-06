@@ -62,7 +62,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     blob = Blob(source_blob_name, bucket)
     blob.download_to_filename(destination_file_name)
 
-
+# esta es la función que genera el mensaje
 def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
 
@@ -91,7 +91,7 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
             datos_latitude.append(coords[1])
             datos_longitude.append(coords[0])
             print(data)
-            pubsub_class.publish_message(data)
+            pubsub_class.publish_message(data)# crear json y enviar a kafka con todos los detalles
             time.sleep(1)
 
     return datos_longitude, datos_latitude
