@@ -4,7 +4,7 @@
 2. Se instala el requirements.txt
 3. Ejecutais el api_glcoud.py con: "python api_gcloud.py <project_id> <bucket_name>" y os secuestrara la consola
 4. Se ejecuta el archivo subir_archivos_kml_al_bucket (solo hace falta una vez, o cada vez que añadamos archivos .kml)
-5. Ejecutais el generador.py con el siguiente comando: "python generador.py --project_id <project_id> --topic_name <topic_id> --bucket_name <bucket_name>"
+5. Ejecutais el generador.py con el siguiente comando: "python main.py --project_id <project_id> --topic_ofertas <topic_id_ofertas> --topic_solicitudes <topic_id_solicitudes> --bucket_name <bucket_name>"
 6. Vereis los mensajes en terminal y en el bucket de Pub/Sub conforme se generen.
 7. Para el dataflow, ejecutar el siguiente codigo 
 python dataflow.py `

@@ -21,9 +21,13 @@ parser.add_argument(
     required=True,
     help='GCP cloud project name.')
 parser.add_argument(
-    '--topic_name',
+    '--topic_ofertas',
     required=True,
-    help='PubSub topic name.')
+    help='PubSub topic de ofertas.')
+parser.add_argument(
+    '--topic_solicitudes',
+    required=True,
+    help='PubSub topic de solicitudes.')
 parser.add_argument(
     '--bucket_name',
     required=True,
@@ -158,9 +162,15 @@ if __name__ == '__main__':
     if not os.path.exists(DOWNLOAD_FOLDER):
         os.makedirs(DOWNLOAD_FOLDER)
 
+    pubsub_ofertas = PubSubMessages(args.project_id, args.topic_ofertas)
+    pubsub_solicitudes = PubSubMessages(args.project_id, args.topic_solicitudes)
+
     datos_latitude_total, datos_longitude_total = gen_ofertas(
-        NUM_OFERTAS, args.project_id, args.topic_name, args.bucket_name)
+        NUM_OFERTAS, args.project_id, args.topic_ofertas, args.bucket_name)
     latitudes_finales, longitudes_finales = get_coords_finales(
         args.bucket_name, DOWNLOAD_FOLDER)
-    gen_solicitudes(NUM_SOLICITUDES, args.project_id, args.topic_name,
+    gen_solicitudes(NUM_SOLICITUDES, args.project_id, args.topic_solicitudes,
                     datos_latitude_total, datos_longitude_total, latitudes_finales, longitudes_finales)
+
+    pubsub_ofertas.close()
+    pubsub_solicitudes.close()
