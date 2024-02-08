@@ -62,14 +62,14 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     blob = Blob(source_blob_name, bucket)
     blob.download_to_filename(destination_file_name)
 
-# esta es la función que genera el mensaje
+
 def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
 
     kml_file = os.path.join(DOWNLOAD_FOLDER, f'{file_id}.kml')
     download_blob(bucket_name, f'{file_id}.kml', kml_file)
 
-    data = {"id_oferta": [], "punto": [], "longitude": [], "latitude": [], "trayecto": []}
+    data = {"id_oferta": [], "punto": [], "longitude": [], "latitude": [], "longitude_destino": None, "latitude_destino": None}
     datos_longitude = []
     datos_latitude = []
 
@@ -83,21 +83,23 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
         coords_str = coords.text
         coords_list = [tuple(map(float, _.split(',')))[:2] for _ in coords_str.split()]
 
+        last_coords = coords_list[-1]
+        data["longitude_destino"] = last_coords[0]
+        data["latitude_destino"] = last_coords[1]
+
         for _, coords in enumerate(coords_list):
 
             data["id_oferta"] = oferta
             data["punto"] = _ + 1
             data["longitude"] = coords[0]
             data["latitude"] = coords[1]
-            data["trayecto"] = coords_list[_:]
             datos_latitude.append(coords[1])
             datos_longitude.append(coords[0])
             print(data)
-            pubsub_class.publish_message(data)# crear json y enviar a kafka con todos los detalles
+            pubsub_class.publish_message(data)
             time.sleep(1)
 
     return datos_longitude, datos_latitude
-
 
 def get_coords_finales(bucket_name, DOWNLOAD_FOLDER):
     latitudes_finales = []

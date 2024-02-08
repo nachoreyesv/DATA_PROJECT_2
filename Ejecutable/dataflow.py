@@ -1,80 +1,104 @@
-import argparse
-import logging
-import json
 import apache_beam as beam
+import json
+import logging
 from apache_beam.options.pipeline_options import PipelineOptions
-from google.cloud import pubsub_v1
-import xml.etree.ElementTree as ET
 
-BASE_URL = 'http://127.0.0.1:5000'
-NUM_OFERTAS = 3  # Número de ofertas que deseas generar
-DOWNLOAD_FOLDER = 'get_coord'
+# Variables
+project_id = "dataflow-clase"
+subscription_name_ofertas = "ahora"
+subscription_name_solicitudes = "solicitudes"
+bq_dataset = "dp2"
+bq_table = "dp2-table"
+bucket_name = "temp-bucket-dataflow-dp2"
 
-project_id = "dataproject2-413213"
-bq_dataset = "tu_dataset"
-bq_table = "tu_tabla"
+def decode_message(msg):
 
-def ParsePubSubMessage(message):
+    output = msg.decode('utf-8')
 
-    # Decode PubSub message in order to deal with
-    pubsub_message = message.decode('utf-8')
-    
-    # Convert string decoded in JSON format
-    msg = json.loads(pubsub_message)
+    logging.info(output)
 
-    logging.info("New message in PubSub: %s", msg)
+    return json.loads(output)
 
-    # Return function
-    return msg
+class OutputDoFn(beam.DoFn):
 
+    def process(self, element):
+        lista_vehiculos=[]
+        lista_solicitantes=[]
+        lista_matches = []
+        lista_no_matches = []
+
+        if isinstance(element, dict):
+          if "id_oferta" in element:
+              lista_vehiculos.append(element)
+          else:
+              lista_solicitantes.append(element)
+        else:
+            logging.warning(f"Elemento no es un diccionario: {element}")
+
+        for i in lista_solicitantes:
+            for e in lista_vehiculos:
+                if ((i["longitude_destino"] == e["longitude_destino"]) & (i["latitude_destino"] == e["latitude_destino"])):
+                    if ((i["longitude"]-e["longitude"]) < 0.8) & ((i["latitude"]-e["latitude"]) < 0.8):
+                        print(f'El usuario: {i["id_persona"]} ha hecho match con el coche: {e["id_coche"]}')
+                        print(i)
+                        records = {'id1': i["id_solicitante"], 'id2': e["id_oferta"], 'latitude1': i['latitude'],
+                                  'longitude1': i['longitude'], 'latitude2': i['latitude'],
+                                  'longitude2': i['longitude'], 'latitude_final1': i['latitude_destino'],
+                                  'longitude_final1': i['longitude_destino'], 'latitude_final2': i['latitude_destino'],
+                                  'longitude_final2': i['longitude_destino'], 'match': 'yes'}
+                        lista_matches.append(records)
+
+                else:
+                    print('No se ha hecho match')
+                    print(i, e)
+                    records = {'id1': i["id_solicitante"], 'id2': e["id_oferta"], 'latitude1': i['latitude'],
+                                  'longitude1': i['longitude'], 'latitude2': e['latitude'],
+                                  'longitude2': e['longitude'], 'latitude_final1': i['latitude_destino'],
+                                  'longitude_final1': i['longitude_destino'], 'latitude_final2': e['latitude_destino'],
+                                  'longitude_final2': e['longitude_destino'], 'match': 'no'}
+                    lista_no_matches.append(records)
+
+        yield lista_matches, lista_no_matches
 
 def run():
-    # Input arguments
-    parser = argparse.ArgumentParser(description=('Dataflow Streaming Pipeline'))
+    with beam.Pipeline(options=PipelineOptions(
+        streaming=True,
+        project=project_id,
+        runner="DataflowRunner",
+        temp_location=f"gs://{bucket_name}/tmp",
+        staging_location=f"gs://{bucket_name}/staging",
+        region="europe-west6"
+    )) as p:
+        p1=(
+            p 
+            | "ReadFromPubSub" >> beam.io.ReadFromPubSub(subscription=f'projects/{project_id}/subscriptions/{subscription_name_ofertas}')
+            | "Decode msg" >> beam.Map(decode_message)
 
-    parser.add_argument(
-        '--project_id',
-        required=True,
-        help='GCP cloud project name.')
-
-    parser.add_argument(
-        '--input_subscription',
-        required=True,
-        help='PubSub subscription from which we will read data from the generator.')
-
-    parser.add_argument(
-        '--output_topic',
-        required=False,
-        help='PubSub Topic which will be the sink for our data.')
-
-    args, pipeline_opts = parser.parse_known_args()
-
-    """ Apache Beam Pipeline """
-
-    # Pipeline Options
-    options = PipelineOptions(pipeline_opts,
-                              save_main_session=True, streaming=True, project=args.project_id)
-
-    # Pipeline
-    with beam.Pipeline(argv=pipeline_opts, options=options) as p:
-        """ Part 01: Read data from PubSub. """
-        _ = (
-            p
-            | "Read From PubSub" >> beam.io.ReadFromPubSub(subscription=args.input_subscription)
-            | "Parse JSON messages" >> beam.Map(ParsePubSubMessage)
-            | "Write to BigQuery" >> beam.io.WriteToBigQuery(
-                table = f"{project_id}:{bq_dataset}.{bq_table}", # Required Format: PROJECT_ID:DATASET.TABLE
-                schema='nombre:STRING', # Required Format: field:TYPE
-                create_disposition=beam.io.BigQueryDisposition.CREATE_NEVER,
-                write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND
-            )   
         )
+        p2=(
+            p 
+            | "ReadFromPubSub2" >> beam.io.ReadFromPubSub(subscription=f'projects/{project_id}/subscriptions/{subscription_name_solicitudes}')
+            | "Decode msg2" >> beam.Map(decode_message)
+        )
+        data=((p1,p2) | beam.Flatten())
+        data | "Fixed Window" >> beam.WindowInto(beam.window.FixedWindows(1))
+        data | "Encontrar Matches" >> beam.ParDo(OutputDoFn())
+
+        data | "Write to BigQuery" >> beam.io.WriteToBigQuery(
+               table = f"{project_id}:{bq_dataset}.{bq_table}",
+               schema="id1:STRING, id2:STRING, latitude1:STRING, longitude1:STRING, latitude2:STRING, longitude2:STRING, latitude_final1:STRING, longitude_final1:STRING, latitude_final2:STRING, longitude_final2:STRING",
+               create_disposition=beam.io.BigQueryDisposition.CREATE_NEVER,
+               write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND
+           )
+        data | "print" >> beam.Map(print)
+
 
 
 if __name__ == '__main__':
-    # Set Logs
+
     logging.getLogger().setLevel(logging.INFO)
+
     logging.info("The process started")
 
-    # Run Process
     run()
+
