@@ -69,7 +69,7 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
     kml_file = os.path.join(DOWNLOAD_FOLDER, f'{file_id}.kml')
     download_blob(bucket_name, f'{file_id}.kml', kml_file)
 
-    data = {"id_oferta": [], "punto": [], "latitude": [], "longitude": [], "trayecto": []}
+    data = {"id_oferta": [], "punto": [], "longitude": [], "latitude": [], "longitude_destino": None, "latitude_destino": None}
     datos_longitude = []
     datos_latitude = []
 
@@ -83,22 +83,23 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
         coords_str = coords.text
         coords_list = [tuple(map(float, _.split(',')))[:2] for _ in coords_str.split()]
 
+        last_coords = coords_list[-1]
+        data["longitude_destino"] = last_coords[0]
+        data["latitude_destino"] = last_coords[1]
+
         for _, coords in enumerate(coords_list):
 
             data["id_oferta"] = oferta
             data["punto"] = _ + 1
-            data["latitude"] = coords[1]
             data["longitude"] = coords[0]
-            data["trayecto"] = coords_list[_:]
+            data["latitude"] = coords[1]
             datos_latitude.append(coords[1])
             datos_longitude.append(coords[0])
             print(data)
             pubsub_class.publish_message(data)
             time.sleep(1)
 
-
     return datos_longitude, datos_latitude
-
 
 def get_coords_finales(bucket_name, DOWNLOAD_FOLDER):
     latitudes_finales = []
@@ -146,21 +147,20 @@ def gen_ofertas(num_ofertas, project_id, topic_name, bucket_name):
     return datos_longitude_total, datos_latitude_total
 
 
-def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_latitude_total, datos_longitude_total, latitudes_finales, longitudes_finales):
+def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_longitude_total, datos_latitude_total, longitudes_finales, latitudes_finales):
 
     pubsub_class = PubSubMessages(project_id, topic_name)
 
-    data_solicitud = {"id_solicitud": [], "latitude": [], "longitude": [], "latitude_destino": [], "longitude_destino": []}
+    data_solicitud = {"id_solicitud": [], "longitude": [], "latitude": [], "longitude_destino": [], "latitude_destino": []}
     for i in range(1, num_solicitudes + 1):
         data_solicitud['id_solicitud'] = i
-        data_solicitud['latitude'] = random.choice(datos_latitude_total)
         data_solicitud['longitude'] = random.choice(datos_longitude_total)
-        data_solicitud['latitude_destino'] = random.choice(latitudes_finales)
+        data_solicitud['latitude'] = random.choice(datos_latitude_total)
         data_solicitud['longitude_destino'] = random.choice(longitudes_finales)
+        data_solicitud['latitude_destino'] = random.choice(latitudes_finales)
         print(data_solicitud)
         pubsub_class.publish_message(data_solicitud)
         time.sleep(1)
-
 
 if __name__ == '__main__':
     if not os.path.exists(DOWNLOAD_FOLDER):
@@ -169,12 +169,12 @@ if __name__ == '__main__':
     pubsub_ofertas = PubSubMessages(args.project_id, args.topic_ofertas)
     pubsub_solicitudes = PubSubMessages(args.project_id, args.topic_solicitudes)
 
-    datos_latitude_total, datos_longitude_total = gen_ofertas(
+    datos_longitude_total, datos_latitude_total = gen_ofertas(
         NUM_OFERTAS, args.project_id, args.topic_ofertas, args.bucket_name)
     latitudes_finales, longitudes_finales = get_coords_finales(
         args.bucket_name, DOWNLOAD_FOLDER)
     gen_solicitudes(NUM_SOLICITUDES, args.project_id, args.topic_solicitudes,
-                    datos_latitude_total, datos_longitude_total, latitudes_finales, longitudes_finales)
+                    datos_longitude_total, datos_latitude_total, longitudes_finales, latitudes_finales)
 
     pubsub_ofertas.close()
     pubsub_solicitudes.close()
