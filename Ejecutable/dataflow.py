@@ -3,13 +3,12 @@ import json
 import logging
 from apache_beam.options.pipeline_options import PipelineOptions
 
-# Variables
-project_id = "dataproject2-413213"
-subscription_name_ofertas = "topic_ofert-sub"
-subscription_name_solicitudes = "topic_solicit-sub"
-bq_dataset = "pruebadata"
-bq_table = "ejemplo"
-bucket_name = "pruebagp"
+project_id = "dataflow-clase"
+subscription_name_ofertas = "ahora"
+subscription_name_solicitudes = "solicitudes"
+bq_dataset = "dp2"
+bq_table = "dp2-table"
+bucket_name = "temp-bucket-dataflow-dp2"
 
 def decode_message(msg):
 
@@ -73,7 +72,7 @@ def run():
             p 
             | "ReadFromPubSub" >> beam.io.ReadFromPubSub(subscription=f'projects/{project_id}/subscriptions/{subscription_name_ofertas}')
             | "Decode msg" >> beam.Map(decode_message)
-            | "Window1" >> beam.WindowInto(beam.window.FixedWindows(30)  # Aplicar ventana a p1
+            | "Window1" >> beam.WindowInto(beam.window.FixedWindows(30)
         )
 
 
@@ -82,24 +81,22 @@ def run():
             p 
             | "ReadFromPubSub2" >> beam.io.ReadFromPubSub(subscription=f'projects/{project_id}/subscriptions/{subscription_name_solicitudes}')
             | "Decode msg2" >> beam.Map(decode_message)
-            | "Window2" >> beam.WindowInto(beam.window.FixedWindows(30))  # Aplicar ventana a p2
+            | "Window2" >> beam.WindowInto(beam.window.FixedWindows(30))
         )
 
         
         data=(p1,p2)
-        (
-        data
-        
-            | beam.Flatten()
-            |  "Encontrar Matches" >> beam.ParDo(OutputDoFn())
-            | "Write to BigQuery" >> beam.io.WriteToBigQuery(
-               table = f"{project_id}:{bq_dataset}.{bq_table}",
-               schema="id1:STRING, id2:STRING, latitude1:STRING, longitude1:STRING, latitude2:STRING, longitude2:STRING, latitude_final1:STRING, longitude_final1:STRING, latitude_final2:STRING, longitude_final2:STRING",
-               create_disposition=beam.io.BigQueryDisposition.CREATE_NEVER,
-               write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND
-           )
-        )
-        #data | "print" >> beam.Map(print)
+        #(
+        merged = data | beam.Flatten()
+        #    |  "Encontrar Matches" >> beam.ParDo(OutputDoFn())
+        #    | "Write to BigQuery" >> beam.io.WriteToBigQuery(
+        #       table = f"{project_id}:{bq_dataset}.{bq_table}",
+        #       schema="id1:STRING, id2:STRING, latitude1:STRING, longitude1:STRING, latitude2:STRING, longitude2:STRING, latitude_final1:STRING, longitude_final1:STRING, latitude_final2:STRING, longitude_final2:STRING",
+        #       create_disposition=beam.io.BigQueryDisposition.CREATE_NEVER,
+        #       write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND
+        #   )
+        #)
+        merged | "print" >> beam.Map(print)
 
 
 

@@ -35,7 +35,6 @@ parser.add_argument(
 
 args, opts = parser.parse_known_args()
 
-
 class PubSubMessages:
     """ Publish Messages in our PubSub Topic """
 
@@ -101,36 +100,30 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
 
     return datos_longitude, datos_latitude
 
-def get_coords_finales(bucket_name, DOWNLOAD_FOLDER):
-    latitudes_finales = []
-    longitudes_finales = []
 
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
+def get_coords_finales(DOWNLOAD_FOLDER):
+    coords_finales = []
 
-    blobs = bucket.list_blobs()
+    carpeta_get_coord = DOWNLOAD_FOLDER
 
-    for blob in blobs:
-        if blob.name.endswith(".kml"):
-            kml_file = os.path.join(DOWNLOAD_FOLDER, blob.name)
+    if not os.path.exists(carpeta_get_coord):
+        return coords_finales
 
-            with open(kml_file, "wb") as file:
-                blob.download_to_file(file)
+    for filename in os.listdir(carpeta_get_coord):
+        if filename.endswith(".kml"):
+            kml_file = os.path.join(carpeta_get_coord, filename)
 
             with open(kml_file, "r", encoding="utf-8") as archivo:
                 datos_kml = archivo.read()
 
             raiz = ET.fromstring(datos_kml)
-            coordenadas = raiz.findall(".//{http://www.opengis.net/kml/2.2}coordinates")
+            coords_str = raiz.find(".//{http://www.opengis.net/kml/2.2}coordinates").text.strip()
+            coords_list = [tuple(map(float, _.split(',')))[:2] for _ in coords_str.split()]
 
-            if coordenadas:
-                for coordenada_str in coordenadas:
-                    coords_lista = [tuple(map(float, _.split(','))) for _ in coordenada_str.text.split()]
-                    for coords in coords_lista:
-                        longitudes_finales.append(coords[0])
-                        latitudes_finales.append(coords[1])
+            last_coords = coords_list[-1]
+            coords_finales.append((last_coords[0], last_coords[1]))
 
-    return latitudes_finales, longitudes_finales
+    return coords_finales
 
 
 def gen_ofertas(num_ofertas, project_id, topic_name, bucket_name):
@@ -147,17 +140,18 @@ def gen_ofertas(num_ofertas, project_id, topic_name, bucket_name):
     return datos_longitude_total, datos_latitude_total
 
 
-def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_longitude_total, datos_latitude_total, longitudes_finales, latitudes_finales):
+def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_longitude_total, datos_latitude_total, coords_finales):
 
     pubsub_class = PubSubMessages(project_id, topic_name)
 
     data_solicitud = {"id_solicitud": [], "longitude": [], "latitude": [], "longitude_destino": [], "latitude_destino": []}
     for i in range(1, num_solicitudes + 1):
+        eleccion_destino = random.choice(coords_finales)
         data_solicitud['id_solicitud'] = i
         data_solicitud['longitude'] = random.choice(datos_longitude_total)
         data_solicitud['latitude'] = random.choice(datos_latitude_total)
-        data_solicitud['longitude_destino'] = random.choice(longitudes_finales)
-        data_solicitud['latitude_destino'] = random.choice(latitudes_finales)
+        data_solicitud['longitude_destino'] = eleccion_destino[0]
+        data_solicitud['latitude_destino'] = eleccion_destino[1]
         print(data_solicitud)
         pubsub_class.publish_message(data_solicitud)
         time.sleep(1)
@@ -171,10 +165,9 @@ if __name__ == '__main__':
 
     datos_longitude_total, datos_latitude_total = gen_ofertas(
         NUM_OFERTAS, args.project_id, args.topic_ofertas, args.bucket_name)
-    latitudes_finales, longitudes_finales = get_coords_finales(
-        args.bucket_name, DOWNLOAD_FOLDER)
+    coords_finales = get_coords_finales(DOWNLOAD_FOLDER)
     gen_solicitudes(NUM_SOLICITUDES, args.project_id, args.topic_solicitudes,
-                    datos_longitude_total, datos_latitude_total, longitudes_finales, latitudes_finales)
+                    datos_longitude_total, datos_latitude_total, coords_finales)
 
     pubsub_ofertas.close()
     pubsub_solicitudes.close()
