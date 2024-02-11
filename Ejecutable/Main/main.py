@@ -10,8 +10,8 @@ import argparse
 import logging
 
 BASE_URL = 'http://127.0.0.1:5000'
-NUM_OFERTAS = 1
-NUM_SOLICITUDES = 10
+NUM_OFERTAS = 2
+NUM_SOLICITUDES = 3
 DOWNLOAD_FOLDER = 'get_coord'
 
 parser = argparse.ArgumentParser(description=('Streaming Data Generator'))
@@ -129,6 +129,7 @@ def get_coords_finales(DOWNLOAD_FOLDER):
 def gen_ofertas(num_ofertas, project_id, topic_name, bucket_name):
     datos_longitude_total = []
     datos_latitude_total = []
+    longitudes_ofertas = []
 
     for i in range(1, num_ofertas + 1):
         file_id = random.randint(1, 27)
@@ -136,15 +137,18 @@ def gen_ofertas(num_ofertas, project_id, topic_name, bucket_name):
             oferta=i, bucket_name=bucket_name, file_id=file_id, project_id=project_id, topic_name=topic_name)
         datos_longitude_total = datos_longitude
         datos_latitude_total = datos_latitude
+        longitud_oferta_actual = len(datos_longitude)
+        longitudes_ofertas.append(longitud_oferta_actual)
 
-    return datos_longitude_total, datos_latitude_total
+    return datos_longitude_total, datos_latitude_total, longitudes_ofertas
 
 
-def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_longitude_total, datos_latitude_total, coords_finales):
+def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_longitude_total, datos_latitude_total, coords_finales, longitudes_ofertas):
 
     pubsub_class = PubSubMessages(project_id, topic_name)
 
     data_solicitud = {"id_solicitud": [], "longitude": [], "latitude": [], "longitude_destino": [], "latitude_destino": []}
+    
     for i in range(1, num_solicitudes + 1):
         eleccion_destino = random.choice(coords_finales)
         data_solicitud['id_solicitud'] = i
@@ -152,9 +156,10 @@ def gen_solicitudes(num_solicitudes, project_id, topic_name, datos_longitude_tot
         data_solicitud['latitude'] = random.choice(datos_latitude_total)
         data_solicitud['longitude_destino'] = eleccion_destino[0]
         data_solicitud['latitude_destino'] = eleccion_destino[1]
-        print(data_solicitud)
-        pubsub_class.publish_message(data_solicitud)
-        time.sleep(1)
+        for i in range(sum(longitudes_ofertas)):
+            print(data_solicitud)
+            pubsub_class.publish_message(data_solicitud)
+            time.sleep(0.1)
 
 if __name__ == '__main__':
     if not os.path.exists(DOWNLOAD_FOLDER):
@@ -163,11 +168,11 @@ if __name__ == '__main__':
     pubsub_ofertas = PubSubMessages(args.project_id, args.topic_ofertas)
     pubsub_solicitudes = PubSubMessages(args.project_id, args.topic_solicitudes)
 
-    datos_longitude_total, datos_latitude_total = gen_ofertas(
+    datos_longitude_total, datos_latitude_total, longitudes_ofertas = gen_ofertas(
         NUM_OFERTAS, args.project_id, args.topic_ofertas, args.bucket_name)
     coords_finales = get_coords_finales(DOWNLOAD_FOLDER)
     gen_solicitudes(NUM_SOLICITUDES, args.project_id, args.topic_solicitudes,
-                    datos_longitude_total, datos_latitude_total, coords_finales)
+                    datos_longitude_total, datos_latitude_total, coords_finales, longitudes_ofertas)
 
     pubsub_ofertas.close()
     pubsub_solicitudes.close()
