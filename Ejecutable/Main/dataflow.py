@@ -40,19 +40,18 @@ class OutputDoFn(beam.DoFn):
                 if (i["longitude_destino"] == e["longitude_destino"]) and (i["latitude_destino"] == e["latitude_destino"]):
                     if ((i["longitude"] - e["longitude"]) < 0.003) and ((i["latitude"] - e["latitude"]) < 0.003):
                         print(f'El usuario: {i["id_persona"]} ha hecho match con el coche: {e["id_coche"]}')
-                        print(i)
                         records = {'id_solicitante': i["id_solicitud"], 'id_vehiculo': e["id_oferta"], 'latitud_solicitante': i['latitude'],
                                    'longitud_solicitante': i['longitude'], 'latitud_vehiculo': i['latitude'],
                                    'longitud_vehiculo': i['longitude'], 'latitud_final_solicitante': i['latitude_destino'],
                                    'longitud_final_solicitante': i['longitude_destino'], 'latitud_final_vehiculo': i['latitude_destino'],
                                    'longitud_final_vehciulo': i['longitude_destino'], 'match': 'yes'}
                         lista_matches.append(records)
+                        
                         for i in lista_matches:
                             lista_ids_solicitantes.append(i['id_solcitante'])
                         
                     else:
                         print(f'El usuario: {i["id_persona"]} NO! ha hecho match con el coche: {e["id_coche"]}')
-                        print(i, e)
                         records = {'id_solicitante': i["id_solicitud"], 'id_vehiculo': e["id_oferta"], 'latitud_solicitante': i['latitude'],
                                    'longitud_solicitante': i['longitude'], 'latitud_vehiculo': e['latitude'],
                                    'longitud_vehiculo': e['longitude'], 'latitud_final_solicitante': i['latitude_destino'],
@@ -61,7 +60,6 @@ class OutputDoFn(beam.DoFn):
                         lista_no_matches.append(records)
                 else:
                     print(f'El usuario: {i["id_persona"]} NO! ha hecho match con el coche: {e["id_coche"]}')
-                    print(i, e)
                     records = {'id_solicitante': i["id_solicitud"], 'id_vehiculo': e["id_oferta"], 'latitud_solicitante': i['latitude'],
                                    'longitud_solicitante': i['longitude'], 'latitud_vehiculo': e['latitude'],
                                    'longitud_vehiculo': e['longitude'], 'latitud_final_solicitante': i['latitude_destino'],
@@ -73,7 +71,7 @@ class OutputDoFn(beam.DoFn):
             for id_solicitante in lista_ids_solicitantes:
                 file.write(id_solicitante + '\n')
 
-        yield lista_no_matches
+        yield lista_matches
 
 def run():
     with beam.Pipeline(options=PipelineOptions(
