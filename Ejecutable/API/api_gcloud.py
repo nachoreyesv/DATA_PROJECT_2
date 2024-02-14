@@ -5,7 +5,7 @@ import sys
 app = Flask(__name__)
 
 if len(sys.argv) != 3:
-    print("Usage: python3 api_gcloud.py entregablecloudsinmiguel kmlsdp2")
+    print("Usage: python3 api_gcloud.py project_id bucket_name")
     sys.exit(1)
 
 project_id = sys.argv[1]

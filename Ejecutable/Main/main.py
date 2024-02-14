@@ -96,7 +96,7 @@ def read_kml(oferta, bucket_name, file_id, project_id, topic_name):
             datos_longitude.append(coords[0])
             print(data)
             pubsub_class.publish_message(data)
-            time.sleep(1)
+            time.sleep(0.1)
 
     return datos_longitude, datos_latitude
 
