@@ -8,3 +8,4 @@ apache-beam
 threading
 folium
 streamlit_folium
+pandas_gbq

@@ -12,7 +12,7 @@ import logging
 import threading
 
 BASE_URL = 'https://us-central1-dataflow-clase.cloudfunctions.net/main'
-NUM_VEHICULOS = 2
+NUM_VEHICULOS = 30
 DOWNLOAD_FOLDER = 'get_coord'
 
 bigquery_client = bigquery.Client()
@@ -105,8 +105,9 @@ def read_kml(vehiculo, bucket_name, file_id, project_id, topic_name):
 def gen_vehiculos(num_vehiculos, project_id, topic_name, bucket_name):
     threads = []
     for i in range(1, num_vehiculos + 1):
-        
-        thread = threading.Thread(target=read_kml, args=(i, bucket_name, 1, project_id, topic_name))
+
+        file_id = random.randint(1,27)
+        thread = threading.Thread(target=read_kml, args=(i, bucket_name, file_id, project_id, topic_name))
         threads.append(thread)
         thread.start()
 

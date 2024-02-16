@@ -12,7 +12,7 @@ import logging
 import threading
 
 BASE_URL = 'https://us-central1-dataflow-clase.cloudfunctions.net/main'
-NUM_USUARIOS = 20
+NUM_USUARIOS = 70
 DOWNLOAD_FOLDER = 'get_coord'
 
 bigquery_client = bigquery.Client()
@@ -89,9 +89,13 @@ def read_kml(usuario, bucket_name, file_id, project_id, topic_name):
 
         select = random.choice(coords_list)
         start_index = coords_list.index(select)
+        
         end_index = start_index + 10
+        if end_index > len(coords_list):
+            end_index = len(coords_list)
+
         paseito_usuario = coords_list[start_index:end_index]
-        lista_ultima_cord_rep = [(paseito_usuario[7])] * (len(coords_list) - 10)
+        lista_ultima_cord_rep = [(paseito_usuario[-1])] * (len(coords_list) - 10)
         paseito_usuario_final = paseito_usuario + lista_ultima_cord_rep
 
         for _, coords in enumerate(coords_list):
@@ -114,7 +118,8 @@ def gen_usuarios(num_usuarios, project_id, topic_name, bucket_name):
     threads = []
     for i in range(1, num_usuarios + 1):
         
-        thread = threading.Thread(target=read_kml, args=(i, bucket_name, 1, project_id, topic_name))
+        file_id = random.randint(1, 27)
+        thread = threading.Thread(target=read_kml, args=(i, bucket_name, file_id, project_id, topic_name))
         threads.append(thread)
         thread.start()
 
