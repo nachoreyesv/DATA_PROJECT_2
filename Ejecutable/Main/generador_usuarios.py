@@ -8,9 +8,10 @@ from google.cloud.storage import Blob
 import xml.etree.ElementTree as ET
 import argparse
 import logging
+import threading
 
 BASE_URL = 'http://127.0.0.1:5000'
-NUM_USUARIOS = 1
+NUM_USUARIOS = 20
 DOWNLOAD_FOLDER = 'get_coord'
 
 parser = argparse.ArgumentParser(description=('Streaming Data Generator'))
@@ -54,16 +55,13 @@ class PubSubMessages:
         self.publisher.api.transport.close()
         logging.info(f"PubSub Client for {self.topic_name} closed.")
 
-
 def read_kml(usuario, bucket_name, file_id, project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
 
     kml_file = os.path.join(DOWNLOAD_FOLDER, f'{file_id}.kml')
     download_blob(bucket_name, f'{file_id}.kml', kml_file)
 
-    data_usuario = {"id_usuario": [], "longitud": [], "latitud": [], "longitud_destino": [], "latitud_destino": [], "id_viaje": None}
-    datos_longitud = []
-    datos_latitud = []
+    data_usuario = {"id_usuario": [], "longitud": [], "latitud": [], "id_viaje": None}
 
     with open(kml_file, "r", encoding="utf-8") as file:
         kml_data = file.read()
@@ -75,40 +73,35 @@ def read_kml(usuario, bucket_name, file_id, project_id, topic_name):
         coords_str = coords.text
         coords_list = [tuple(map(float, _.split(',')))[:2] for _ in coords_str.split()]
 
-        last_coords = coords_list[-1]
-        data_usuario["longitud_destino"] = last_coords[0]
-        data_usuario["latitud_destino"] = last_coords[1]
+        select = random.choice(coords_list)
+        start_index = coords_list.index(select)
+        end_index = start_index + 10
+        paseito_usuario = coords_list[start_index:end_index]
+        lista_ultima_cord_rep = [(paseito_usuario[8])] * (len(coords_list) - 10)
+        paseito_usuario_final = paseito_usuario + lista_ultima_cord_rep
 
         for _, coords in enumerate(coords_list):
-
             data_usuario["id_usuario"] = usuario
-            data_usuario["longitud"] = coords[0]
-            data_usuario["latitud"] = coords[1]
             data_usuario["id_viaje"] = file_id
-            datos_latitud.append(coords[1])
-            datos_longitud.append(coords[0])
+        
+        for i in paseito_usuario_final:
+            data_usuario["longitud"] = i[0]
+            data_usuario["latitud"] = i[1]
+
             print(data_usuario)
             pubsub_class.publish_message(data_usuario)
             time.sleep(5)
 
-    return datos_longitud, datos_latitud
-
 def gen_usuarios(num_usuarios, project_id, topic_name, bucket_name):
-    datos_longitud_total = []
-    datos_latitud_total = []
-    longitudes_viajes = []
-
+    threads = []
     for i in range(1, num_usuarios + 1):
-        #file_id = random.randint(1, 27)
-        file_id = 1
-        datos_longitud, datos_latitud = read_kml(
-            usuario=i, bucket_name=bucket_name, file_id=file_id, project_id=project_id, topic_name=topic_name)
-        datos_longitud_total = datos_longitud
-        datos_latitud_total = datos_latitud
-        longitud_viaje_actual = len(datos_longitud)
-        longitudes_viajes.append(longitud_viaje_actual)
+        
+        thread = threading.Thread(target=read_kml, args=(i, bucket_name, 1, project_id, topic_name))
+        threads.append(thread)
+        thread.start()
 
-    return file_id, datos_longitud_total, datos_latitud_total, longitudes_viajes
+    for thread in threads:
+        thread.join()
 
 if __name__ == '__main__':
     if not os.path.exists(DOWNLOAD_FOLDER):
@@ -116,7 +109,6 @@ if __name__ == '__main__':
 
     pubsub_usuarios = PubSubMessages(args.project_id, args.topic_usuarios)
     
-    file_id, datos_longitud_total, datos_latitud_total, longitudes_viajes = gen_usuarios(
-    NUM_USUARIOS, args.project_id, args.topic_usuarios, args.bucket_name)
+    gen_usuarios(NUM_USUARIOS, args.project_id, args.topic_usuarios, args.bucket_name)
     
     pubsub_usuarios.close()

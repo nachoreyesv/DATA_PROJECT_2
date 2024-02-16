@@ -8,9 +8,10 @@ from google.cloud.storage import Blob
 import xml.etree.ElementTree as ET
 import argparse
 import logging
+import threading
 
 BASE_URL = 'http://127.0.0.1:5000'
-NUM_VEHICULOS = 1
+NUM_VEHICULOS = 20
 DOWNLOAD_FOLDER = 'get_coord'
 
 parser = argparse.ArgumentParser(description=('Streaming Data Generator'))
@@ -60,9 +61,7 @@ def read_kml(vehiculo, bucket_name, file_id, project_id, topic_name):
     kml_file = os.path.join(DOWNLOAD_FOLDER, f'{file_id}.kml')
     download_blob(bucket_name, f'{file_id}.kml', kml_file)
 
-    data = {"id_vehiculo": [], "punto": [], "longitud": [], "latitud": [], "longitud_destino": None, "latitud_destino": None, "id_viaje": None}
-    datos_longitud = []
-    datos_latitud = []
+    data = {"id_vehiculo": [], "punto": [], "longitud": [], "latitud": [], "id_viaje": None, "plazas_disponibles": None}
 
     with open(kml_file, "r", encoding="utf-8") as file:
         kml_data = file.read()
@@ -74,9 +73,7 @@ def read_kml(vehiculo, bucket_name, file_id, project_id, topic_name):
         coords_str = coords.text
         coords_list = [tuple(map(float, _.split(',')))[:2] for _ in coords_str.split()]
 
-        last_coords = coords_list[-1]
-        data["longitud_destino"] = last_coords[0]
-        data["latitud_destino"] = last_coords[1]
+        data['plazas_disponibles'] = random.randint(1,4)
 
         for _, coords in enumerate(coords_list):
 
@@ -85,30 +82,20 @@ def read_kml(vehiculo, bucket_name, file_id, project_id, topic_name):
             data["longitud"] = coords[0]
             data["latitud"] = coords[1]
             data["id_viaje"] = file_id
-            datos_latitud.append(coords[1])
-            datos_longitud.append(coords[0])
             print(data)
             pubsub_class.publish_message(data)
             time.sleep(5)
 
-    return datos_longitud, datos_latitud
-
 def gen_vehiculos(num_vehiculos, project_id, topic_name, bucket_name):
-    datos_longitud_total = []
-    datos_latitud_total = []
-    longitudes_viajes = []
-
+    threads = []
     for i in range(1, num_vehiculos + 1):
-        #file_id = random.randint(1, 27)
-        file_id = 1
-        datos_longitud, datos_latitud = read_kml(
-            vehiculo=i, bucket_name=bucket_name, file_id=file_id, project_id=project_id, topic_name=topic_name)
-        datos_longitud_total = datos_longitud
-        datos_latitud_total = datos_latitud
-        longitud_viaje_actual = len(datos_longitud)
-        longitudes_viajes.append(longitud_viaje_actual)
+        
+        thread = threading.Thread(target=read_kml, args=(i, bucket_name, 1, project_id, topic_name))
+        threads.append(thread)
+        thread.start()
 
-    return file_id, datos_longitud_total, datos_latitud_total, longitudes_viajes
+    for thread in threads:
+        thread.join()
 
 if __name__ == '__main__':
     if not os.path.exists(DOWNLOAD_FOLDER):
@@ -116,7 +103,6 @@ if __name__ == '__main__':
 
     pubsub_vehiculos = PubSubMessages(args.project_id, args.topic_vehiculos)
 
-    file_id, datos_longitud_total, datos_latitud_total, longitudes_viajes = gen_vehiculos(
-        NUM_VEHICULOS, args.project_id, args.topic_vehiculos, args.bucket_name)
+    gen_vehiculos(NUM_VEHICULOS, args.project_id, args.topic_vehiculos, args.bucket_name)
     
     pubsub_vehiculos.close()
