@@ -5,14 +5,19 @@ import time
 from google.cloud import pubsub_v1
 from google.cloud import storage
 from google.cloud.storage import Blob
+from google.cloud import bigquery
 import xml.etree.ElementTree as ET
 import argparse
 import logging
 import threading
 
-BASE_URL = 'http://127.0.0.1:5000'
-NUM_VEHICULOS = 20
+BASE_URL = 'https://us-central1-dataflow-clase.cloudfunctions.net/main'
+NUM_VEHICULOS = 2
 DOWNLOAD_FOLDER = 'get_coord'
+
+bigquery_client = bigquery.Client()
+dataset_id = 'data_project_2'
+table_id = 'tabla_vehiculos'
 
 parser = argparse.ArgumentParser(description=('Streaming Data Generator'))
 
@@ -55,6 +60,16 @@ class PubSubMessages:
         self.publisher.api.transport.close()
         logging.info(f"PubSub Client for {self.topic_name} closed.")
 
+
+def write_to_bigquery(data):
+
+    table_ref = bigquery_client.dataset(dataset_id).table(table_id)
+    table = bigquery_client.get_table(table_ref)
+
+    errors = bigquery_client.insert_rows(table, [data])
+    if errors:
+        print('Error al insertar fila en BigQuery:', errors)
+
 def read_kml(vehiculo, bucket_name, file_id, project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
 
@@ -84,6 +99,7 @@ def read_kml(vehiculo, bucket_name, file_id, project_id, topic_name):
             data["id_viaje"] = file_id
             print(data)
             pubsub_class.publish_message(data)
+            write_to_bigquery(data)
             time.sleep(5)
 
 def gen_vehiculos(num_vehiculos, project_id, topic_name, bucket_name):

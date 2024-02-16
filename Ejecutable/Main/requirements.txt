@@ -1,7 +1,10 @@
 google-cloud-pubsub
 google-cloud-storage
+google-cloud-bigquery
 requests
 pandas
 flask
 apache-beam
 threading
+folium
+streamlit_folium

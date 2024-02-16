@@ -5,14 +5,19 @@ import time
 from google.cloud import pubsub_v1
 from google.cloud import storage
 from google.cloud.storage import Blob
+from google.cloud import bigquery
 import xml.etree.ElementTree as ET
 import argparse
 import logging
 import threading
 
-BASE_URL = 'http://127.0.0.1:5000'
+BASE_URL = 'https://us-central1-dataflow-clase.cloudfunctions.net/main'
 NUM_USUARIOS = 20
 DOWNLOAD_FOLDER = 'get_coord'
+
+bigquery_client = bigquery.Client()
+dataset_id = 'data_project_2'
+table_id = 'tabla_usuarios'
 
 parser = argparse.ArgumentParser(description=('Streaming Data Generator'))
 
@@ -55,13 +60,22 @@ class PubSubMessages:
         self.publisher.api.transport.close()
         logging.info(f"PubSub Client for {self.topic_name} closed.")
 
+def write_to_bigquery(data_usuario):
+
+    table_ref = bigquery_client.dataset(dataset_id).table(table_id)
+    table = bigquery_client.get_table(table_ref)
+
+    errors = bigquery_client.insert_rows(table, [data_usuario])
+    if errors:
+        print('Error al insertar fila en BigQuery:', errors)
+
 def read_kml(usuario, bucket_name, file_id, project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
 
     kml_file = os.path.join(DOWNLOAD_FOLDER, f'{file_id}.kml')
     download_blob(bucket_name, f'{file_id}.kml', kml_file)
 
-    data_usuario = {"id_usuario": [], "longitud": [], "latitud": [], "id_viaje": None}
+    data_usuario = {"id_usuario": [], 'punto': [], "longitud": [], "latitud": [], "id_viaje": None}
 
     with open(kml_file, "r", encoding="utf-8") as file:
         kml_data = file.read()
@@ -87,9 +101,13 @@ def read_kml(usuario, bucket_name, file_id, project_id, topic_name):
         for i in paseito_usuario_final:
             data_usuario["longitud"] = i[0]
             data_usuario["latitud"] = i[1]
+        
+        for i in range(1, len(coords_list) + 1):
+            data_usuario['punto'] = i
 
             print(data_usuario)
             pubsub_class.publish_message(data_usuario)
+            write_to_bigquery(data_usuario)
             time.sleep(5)
 
 def gen_usuarios(num_usuarios, project_id, topic_name, bucket_name):
