@@ -8,4 +8,3 @@ files = [('files[]', (file, open(os.path.join(folder_path, file), 'rb'))) for fi
 response = requests.post(api_url, files=files)
 
 print(response.json())
-

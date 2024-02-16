@@ -81,7 +81,7 @@ def gen_solicitudes(dfs_list, distancia_minima=40):
     return solicitudes
 
 def calcular_coste(solicitudes):
-    tarifa_por_punto = 0.50 
+    tarifa_por_punto = 0.50
     costes = []
 
     for trayecto in solicitudes:
@@ -174,7 +174,7 @@ def mapa(dfs_list, solicitudes, current_punto):
             folium.Marker(
                 location=[latitude_inicio, longitude_inicio],
                 popup=f'Cliente sube al coche en el punto {punto_inicio} del Viaje Nº {df_puntoinicio["viaje"].iloc[0]}',
-                icon=folium.CustomIcon(icon_image = "StreamlitLocal\Iconos\IconoCliente.png",
+                icon=folium.CustomIcon(icon_image="Ejecutable/Streamlit/Iconos/IconoCliente.png",
                                        icon_size = (27,30))
             ).add_to(folium_map)
 
@@ -186,7 +186,7 @@ def mapa(dfs_list, solicitudes, current_punto):
             folium.Marker(
                 location=[latitude_final, longitude_final],
                 popup=f'Cliente baja del coche en este punto del {df_puntofinal["viaje"].iloc[0]}º viaje',
-                icon=folium.CustomIcon(icon_image = "StreamlitLocal\Iconos\IconoBandera.png",
+                icon=folium.CustomIcon(icon_image="Ejecutable/Streamlit/Iconos/IconoBandera.png",
                                        icon_size = (25,25))
             ).add_to(folium_map)
 
@@ -205,7 +205,7 @@ def mapa(dfs_list, solicitudes, current_punto):
 if __name__ == '__main__':
 
     st.title('Servicio Blablacar')
-    df = kml_df('StreamlitLocal\coordenadas')
+    df = kml_df('Ejecutable\\Streamlit\\coordenadas')
     num_rutas = st.selectbox('Número de coches', range(1, 11))
     dfs_list = gen_ofertas(df, num_rutas)
     solicitudes = gen_solicitudes(dfs_list)
