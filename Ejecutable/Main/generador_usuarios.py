@@ -77,7 +77,7 @@ def read_kml(usuario, bucket_name, file_id, project_id, topic_name):
         start_index = coords_list.index(select)
         end_index = start_index + 10
         paseito_usuario = coords_list[start_index:end_index]
-        lista_ultima_cord_rep = [(paseito_usuario[8])] * (len(coords_list) - 10)
+        lista_ultima_cord_rep = [(paseito_usuario[7])] * (len(coords_list) - 10)
         paseito_usuario_final = paseito_usuario + lista_ultima_cord_rep
 
         for _, coords in enumerate(coords_list):
