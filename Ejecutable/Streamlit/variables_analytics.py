@@ -29,8 +29,40 @@ df['id_usuario'] = df.index
 edades = ['16-25', '26-35', '36-45', '46-55', '56-65', '>65']
 df['edad'] = df.apply(lambda x: random.choice(edades), axis = 1) 
 
+calificacion_usuario = ['1', '2', '3', '4', '5']
+def asignar_calificacion_usuario():
+    probabilidad = random.random()  
+    
+    if probabilidad < 0.05: 
+        return '1'
+    elif probabilidad < 0.1:  
+        return '2'
+    elif probabilidad < 0.15:  # 80% de probabilidad (0.15 a 0.95)
+        return '3'
+    elif probabilidad < 0.95:  
+        return '4'
+    else:  
+        return '5'
+
+df['calificacion_usuario'] = df.apply(lambda x: asignar_calificacion_usuario(), axis=1) 
+
+metodo_pago = ['tarjeta', 'efectivo']
+probabilidad_tarjeta = 0.8 
+df['metodo_pago'] = [random.choice(metodo_pago) if random.random() < probabilidad_tarjeta else 'efectivo' for _ in range(len(df))]
+
 sexo = ['hombre', 'mujer']
-df['sexo'] = df.apply(lambda x: random.choice(sexo), axis = 1)
+def asignar_sexo():
+    probabilidad = random.random()
+    
+    if probabilidad < 0.46:
+        return 'mujer'
+    else:
+        return 'hombre'
+
+df['sexo'] = df.apply(lambda x: asignar_sexo(), axis=1)
+
+
+
 
 for i in df.index:
   if df['sexo'][i] == 'hombre':
@@ -80,6 +112,7 @@ for i in range(30):
     nueva_fila = {
         'id_vehiculo': i,
         'plazas_disponibles': None,
+        'calificacion_conductor': None,
         'marca': None,
         'modelo': None,
         'año_de_fabricacion': None,
@@ -88,7 +121,8 @@ for i in range(30):
         'kilometraje': None,
         'estado_del_vehiculo': None,
         'fecha_de_venta': None,
-        'accidentes_anteriores': None
+        'accidentes_anteriores': None,
+        'genero_conductor': None
     }
     df_vehiculos = df_vehiculos.append(nueva_fila, ignore_index=True)
 
@@ -96,6 +130,37 @@ df_vehiculos.index = df_vehiculos.index + 1
 
 df_vehiculos['id_vehiculo'] = df_vehiculos.index
 df_vehiculos['plazas_disponibles'] = [3,3,2,4,2,3,2,2,3,4,3,2,2,3,2,2,4,4,3,3,3,4,3,1,1,4,4,4,4,2]
+
+calificacion_conductor = ['1', '2', '3', '4', '5']
+
+def asignar_calificacion():
+    probabilidad = random.random()  
+    
+    if probabilidad < 0.05: 
+        return '1'
+    elif probabilidad < 0.1:  
+        return '2'
+    elif probabilidad < 0.15:  # 80% de probabilidad (0.15 a 0.95)
+        return '3'
+    elif probabilidad < 0.95:  
+        return '4'
+    else:  
+        return '5'
+
+df_vehiculos['calificacion_conductor'] = df_vehiculos.apply(lambda x: asignar_calificacion(), axis=1)
+
+genero_conductor = ['hombre', 'mujer']
+def asignar_genero_conductor():
+    probabilidad = random.random()
+    
+    if probabilidad < 0.47:
+        return 'mujer'
+    else:
+        return 'hombre'
+
+df_vehiculos['genero_conductor'] = df.apply(lambda x: asignar_genero_conductor(), axis=1)
+
+
 
 marcas_coches = ["Toyota", "Ford", "Chevrolet", "Honda", "Volkswagen", "BMW", "Audi", "Mercedes-Benz", "Nissan", "Hyundai", "Kia", "Volvo"]
 df_vehiculos['marca'] = df_vehiculos.apply(lambda x: random.choice(marcas_coches), axis = 1)
@@ -139,8 +204,21 @@ for i in range(30):
 
 df_vehiculos['año_de_fabricacion'] = df_vehiculos.apply(lambda x: random.choice(años_f), axis = 1)
 
-combustibles = ['gasolina', 'diesel', 'hibrido', 'electrico']
-df_vehiculos['tipo_de_combustible'] = df_vehiculos.apply(lambda x: random.choice(combustibles), axis = 1)
+tipo_de_combustible = 'gasolina', 'diesel', 'electrico', 'glp'
+def asignar_combustible():
+    probabilidad = random.random()  
+    
+    if probabilidad < 0.50: 
+        return 'gasolina'
+    elif probabilidad < 0.70:  
+        return 'diesel'
+    elif probabilidad < 0.85:
+        return 'electrico'
+    else:  
+        return 'glp'
+
+df_vehiculos['tipo_de_combustible'] = df_vehiculos.apply(lambda x: asignar_combustible(), axis=1)
+
 
 rangos_potencia = [
     "0-100 CV",
