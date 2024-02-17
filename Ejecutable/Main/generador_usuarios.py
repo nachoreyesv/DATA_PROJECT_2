@@ -16,8 +16,8 @@ NUM_USUARIOS = 70
 DOWNLOAD_FOLDER = 'get_coord'
 
 bigquery_client = bigquery.Client()
-dataset_id = 'data_project_2'
-table_id = 'tabla_usuarios'
+#dataset_id = 'data_project_2'
+#table_id = 'tabla_usuarios'
 
 parser = argparse.ArgumentParser(description=('Streaming Data Generator'))
 
@@ -111,14 +111,14 @@ def read_kml(usuario, bucket_name, file_id, project_id, topic_name):
 
             print(data_usuario)
             pubsub_class.publish_message(data_usuario)
-            write_to_bigquery(data_usuario)
+            #write_to_bigquery(data_usuario)
             time.sleep(5)
 
 def gen_usuarios(num_usuarios, project_id, topic_name, bucket_name):
     threads = []
     for i in range(1, num_usuarios + 1):
         
-        file_id = random.randint(1, 27)
+        file_id = random.randint(1,27)
         thread = threading.Thread(target=read_kml, args=(i, bucket_name, file_id, project_id, topic_name))
         threads.append(thread)
         thread.start()

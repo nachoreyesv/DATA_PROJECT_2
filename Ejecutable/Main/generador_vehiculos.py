@@ -16,8 +16,8 @@ NUM_VEHICULOS = 30
 DOWNLOAD_FOLDER = 'get_coord'
 
 bigquery_client = bigquery.Client()
-dataset_id = 'data_project_2'
-table_id = 'tabla_vehiculos'
+#dataset_id = 'data_project_2'
+#table_id = 'tabla_vehiculos'
 
 parser = argparse.ArgumentParser(description=('Streaming Data Generator'))
 
@@ -99,7 +99,7 @@ def read_kml(vehiculo, bucket_name, file_id, project_id, topic_name):
             data["id_viaje"] = file_id
             print(data)
             pubsub_class.publish_message(data)
-            write_to_bigquery(data)
+            #write_to_bigquery(data)
             time.sleep(5)
 
 def gen_vehiculos(num_vehiculos, project_id, topic_name, bucket_name):
