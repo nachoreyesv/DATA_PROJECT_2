@@ -21,7 +21,7 @@ class AssignNumericKey(beam.DoFn):
 
 class CheckCoordinatesDoFn(beam.DoFn):
     def __init__(self):
-        super().__init__()
+        
         self.matched_usuarios_vehiculos = set()
 
     def process(self, element):
